@@ -1,0 +1,13 @@
+﻿  parser.cpp
+c:\users\user\desktop\magshitest\sadna\interpreter2\interpreter2\parser.cpp(4): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+c:\users\user\desktop\magshitest\sadna\interpreter2\interpreter2\parser.cpp(24): warning C4297: 'Parser::parseString': function assumed not to throw an exception but does
+  c:\users\user\desktop\magshitest\sadna\interpreter2\interpreter2\parser.cpp(24): note: __declspec(nothrow), throw(), noexcept(true), or noexcept was specified on the function
+c:\users\user\desktop\magshitest\sadna\interpreter2\interpreter2\parser.cpp(55): warning C4297: 'Parser::parseString': function assumed not to throw an exception but does
+  c:\users\user\desktop\magshitest\sadna\interpreter2\interpreter2\parser.cpp(55): note: __declspec(nothrow), throw(), noexcept(true), or noexcept was specified on the function
+c:\users\user\desktop\magshitest\sadna\interpreter2\interpreter2\parser.cpp(96): warning C4018: '<': signed/unsigned mismatch
+c:\users\user\desktop\magshitest\sadna\interpreter2\interpreter2\parser.cpp(120): warning C4018: '<': signed/unsigned mismatch
+c:\users\user\desktop\magshitest\sadna\interpreter2\interpreter2\parser.cpp(150): warning C4018: '<': signed/unsigned mismatch
+c:\users\user\desktop\magshitest\sadna\interpreter2\interpreter2\parser.cpp(152): warning C4018: '<': signed/unsigned mismatch
+c:\users\user\desktop\magshitest\sadna\interpreter2\interpreter2\parser.cpp(189): warning C4018: '<': signed/unsigned mismatch
+  Interpreter2.vcxproj -> C:\Users\user\Desktop\magshitest\sadna\Interpreter2\Debug\Interpreter2.exe
+  Interpreter2.vcxproj -> C:\Users\user\Desktop\magshitest\sadna\Interpreter2\Debug\Interpreter2.pdb (Partial PDB)
