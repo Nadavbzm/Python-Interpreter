@@ -175,9 +175,12 @@ bool Parser::makeAssignment(const std::string & str)
 			Helper::trim(name);
 			Type * temp = i->second->copy();
 			temp->setIsTemp(false);
-			Parser::_variables.insert({ name, temp });
+			i = Parser::_variables.find(name);
+			i->second =  temp;
 			return true;
 		}
+
+		//if addition in value
 		if (str.find('+') != std::string::npos) {
 			int indexP = value.find('+');
 			std::string Left = "";
@@ -202,40 +205,53 @@ bool Parser::makeAssignment(const std::string & str)
 			if (iter != Parser::_variables.end())
 			{
 				char * nameType = Helper::GetTypeName(iter->second);
-				if (Helper::GetTypeName(valLeftType) != Helper::GetTypeName(valRightType)
-					|| Helper::GetTypeName(valLeftType) != nameType
-					|| Helper::GetTypeName(valRightType) != nameType)
+				if (valLeftType == nullptr || valLeftType == nullptr)
+				{
+					SyntaxException e;
+					throw e;
+				}
+				if (Helper::GetTypeName(valLeftType) != Helper::GetTypeName(valRightType))
 				{
 					TypeException e;
 					throw e;
 				}
 
-				if (Helper::GetTypeName(valLeftType) == nullptr
-					|| Helper::GetTypeName(valLeftType) == nullptr
-					|| nameType == nullptr)
-				{
-					SyntaxException e;
-					throw e;
-				}
-
 				//setting value variable
 				else {
-					if (nameType == "String")
+					if (Helper::GetTypeName(valLeftType) == "String")
 					{
 						std::string val = "\"";
 						val += Helper::RemoveStr(valLeftType->toString());
 						val += Helper::RemoveStr(valRightType->toString());
 						val += "\"";
-						((String *)iter->second)->setValue(val);
+						try{
+							if (List* v = dynamic_cast<List*>(iter->second)){
+								((List *)iter->second)->clean();
+							}
+						}
+						catch (...) {
+							delete iter->second;
+						}
+						iter->second = new String(val);
+						iter->second->setIsTemp(false);
 						delete valLeftType;
 						delete valRightType;
 						return true;
 					}
-					else if (nameType == "Integer")
+					else if (Helper::GetTypeName(valLeftType) == "Integer")
 					{
 						int val;
 						val = ((Integer *)valLeftType)->getValue() + ((Integer *)valRightType)->getValue();
-						((Integer *)iter->second)->setValue(val);
+						try {
+							if (List* v = dynamic_cast<List*>(iter->second)) {
+								((List *)iter->second)->clean();
+							}
+						}
+						catch (...) {
+							delete iter->second;
+						}
+						iter->second = new Integer(val);
+						iter->second->setIsTemp(false);
 						delete valLeftType;
 						delete valRightType;
 						return true;
@@ -249,8 +265,7 @@ bool Parser::makeAssignment(const std::string & str)
 				throw e;
 			}
 
-			if (Helper::GetTypeName(valLeftType) == nullptr
-				|| Helper::GetTypeName(valLeftType) == nullptr)
+			if (valLeftType == nullptr || valLeftType == nullptr)
 			{
 				SyntaxException e;
 				throw e;
@@ -264,7 +279,7 @@ bool Parser::makeAssignment(const std::string & str)
 					val += Helper::RemoveStr(valRightType->toString());
 					val	+= "\"";
 					String * newType = new String(val);
-					newType->setIsTemp(true);
+					newType->setIsTemp(false);
 					Parser::_variables.insert({ name, newType });
 					delete valLeftType;
 					delete valRightType;
@@ -275,7 +290,7 @@ bool Parser::makeAssignment(const std::string & str)
 					int val;
 					val = ((Integer *)valLeftType)->getValue() + ((Integer *)valRightType)->getValue();
 					Integer * newType = new Integer(val);
-					newType->setIsTemp(true);
+					newType->setIsTemp(false);
 					Parser::_variables.insert({ name, newType });
 					delete valLeftType;
 					delete valRightType;
@@ -283,6 +298,92 @@ bool Parser::makeAssignment(const std::string & str)
 				}
 			}
 
+		}
+		if (str.find('-') != std::string::npos) {
+			int indexP = value.find('-');
+			std::string Left = "";
+			std::string Right = "";
+			for (int i = 0; i < indexP; i++) {
+				Left += value[i];
+			}
+
+			for (int i = indexP + 1; i < value.length(); i++) {
+				Right += value[i];
+			}
+
+			Type * valLeftType = Parser::getType(Left);
+			Type * valRightType = Parser::getType(Right);
+
+			Helper::trim(Left);
+			Helper::trim(Right);
+
+			std::unordered_map<std::string, Type * >::iterator iter = Parser::_variables.find(name);
+
+			//if changing a stored variable
+			if (iter != Parser::_variables.end())
+			{
+				if (valLeftType == nullptr || valLeftType == nullptr)
+				{
+					SyntaxException e;
+					throw e;
+				}
+
+				char * nameType = Helper::GetTypeName(iter->second);
+				if (Helper::GetTypeName(valLeftType) != Helper::GetTypeName(valRightType))
+				{
+					TypeException e;
+					throw e;
+				}
+
+
+				//setting value variable
+				else {
+					if (Helper::GetTypeName(valLeftType) == "Integer")
+					{
+						int val;
+						val = ((Integer *)valLeftType)->getValue() - ((Integer *)valRightType)->getValue();
+						try {
+							if (List* v = dynamic_cast<List*>(iter->second)) {
+								((List *)iter->second)->clean();
+							}
+						}
+						catch (...) {
+							delete iter->second;
+						}
+						iter->second = new Integer(val);
+						iter->second->setIsTemp(false);
+						delete valLeftType;
+						delete valRightType;
+						return true;
+					}
+				}
+			}
+			//creating new var
+			if (valLeftType == nullptr || valLeftType == nullptr)
+			{
+				SyntaxException e;
+				throw e;
+			}
+			if (Helper::GetTypeName(valLeftType) != Helper::GetTypeName(valRightType))
+			{
+				TypeException e;
+				throw e;
+			}
+
+
+			else {
+				if (Helper::GetTypeName(valLeftType) == "Integer")
+				{
+					int val;
+					val = ((Integer *)valLeftType)->getValue() - ((Integer *)valRightType)->getValue();
+					Integer * newType = new Integer(val);
+					newType->setIsTemp(false);
+					Parser::_variables.insert({ name, newType });
+					delete valLeftType;
+					delete valRightType;
+					return true;
+				}
+			}
 		}
 	}
 	return false;
