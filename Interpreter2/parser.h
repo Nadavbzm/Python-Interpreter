@@ -11,6 +11,9 @@
 #include <unordered_map>
 #include <iostream>
 #include <sstream>
+#include <vector>
+
+#define MAX_MUL_STR 100000
 
 class Parser
 {

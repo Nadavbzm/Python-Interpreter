@@ -181,206 +181,587 @@ bool Parser::makeAssignment(const std::string & str)
 		}
 
 		//if addition in value
-		if (str.find('+') != std::string::npos) {
-			int indexP = value.find('+');
-			std::string Left = "";
-			std::string Right = "";
-			for (int i = 0; i < indexP; i++) {
-				Left += value[i];
-			}
-
-			for (int i = indexP+1; i < value.length(); i++) {
-				Right += value[i];
-			}
-
-			Type * valLeftType = Parser::getType(Left);
-			Type * valRightType = Parser::getType(Right);
-
-			Helper::trim(Left);
-			Helper::trim(Right);
-
-			std::unordered_map<std::string, Type * >::iterator iter = Parser::_variables.find(name);
-
-			//if changing a stored variable
-			if (iter != Parser::_variables.end())
+		if (str.find('+') != std::string::npos) 
+		{
+			int count = 0;
+			for (int i = 0; i < value.length(); i++)
 			{
-				char * nameType = Helper::GetTypeName(iter->second);
-				if (valLeftType == nullptr || valLeftType == nullptr)
+				if (value[i] == '+')
 				{
-					SyntaxException e;
-					throw e;
+					count++;
 				}
-				if (Helper::GetTypeName(valLeftType) != Helper::GetTypeName(valRightType))
+			}
+			
+			std::vector<std::pair<std::string, Type *>> TempValues;
+			std::unordered_map<std::string, Type * >::iterator iter;
+			Type * valLeftType = nullptr;
+
+			int indexP = 0;
+			for (int k = 0; k < count+1; k++)
+			{
+				//Counting number of Slicing
+				indexP = value.find('+');
+				std::string Left = "";
+				if (indexP == std::string::npos)
 				{
-					TypeException e;
-					throw e;
+					indexP = value.length();
+				}
+				for (int i = 0; i < indexP; i++) { Left += value[i]; }
+				Helper::trim(Left);
+
+				//Checking if Left Value is a known varible
+				iter = Parser::_variables.find(Left);
+				if (iter != Parser::_variables.end())
+				{
+					valLeftType = iter->second->copy();
+					TempValues.push_back({ Left,valLeftType });
 				}
 
-				//setting value variable
-				else {
-					if (Helper::GetTypeName(valLeftType) == "String")
+				//Getting value of Left
+				else
+				{
+					valLeftType = Parser::getType(Left);
+					if (valLeftType == NULL)
 					{
+						for (int l = 0; l < TempValues.size(); l++)
+						{
+							delete TempValues[l].second;
+						}
+						//Syntx Error - not known type
+						SyntaxException e;
+						throw e;
+					}
+
+					TempValues.push_back({ Left, valLeftType });
+				}
+				
+				std::string newValueLeft = "";
+				for (int i = indexP+1; i < value.length(); i++)
+				{
+					newValueLeft += value[i];
+				}
+				value = newValueLeft;
+			}
+
+				iter = Parser::_variables.find(name);
+				
+				//if changing a stored variable
+				if (iter != Parser::_variables.end())
+				{
+					//setting value variable
+						if (Helper::GetTypeName(TempValues[0].second) == "String")
+						{
+							for (int m = 0; m < TempValues.size(); m++)
+							{
+								if (Helper::GetTypeName(TempValues[m].second) != "String")
+								{
+									for (int l = 0; l < TempValues.size(); l++)
+									{
+										delete TempValues[l].second;
+									}
+									TypeException e;
+									throw e;
+								}
+							}
+							std::string val = "\"";
+							for (int m = 0; m < TempValues.size(); m++)
+							{
+								val += Helper::RemoveStr(TempValues[m].second->toString());
+							}
+							val += "\"";
+							try {
+								if (List* v = dynamic_cast<List*>(iter->second)) {
+									((List *)iter->second)->clean();
+								}
+							}
+							catch (...) {
+								delete iter->second;
+							}
+							iter->second = new String(val);
+							iter->second->setIsTemp(false);
+							for (int l = 0; l < TempValues.size(); l++)
+							{
+								delete TempValues[l].second;
+							}
+							return true;
+						}
+						if (Helper::GetTypeName(TempValues[0].second) == "Integer")
+						{
+							for (int m = 0; m < TempValues.size(); m++)
+							{
+								if (Helper::GetTypeName(TempValues[m].second) != "Integer")
+								{
+									for (int l = 0; l < TempValues.size(); l++)
+									{
+										delete TempValues[l].second;
+									}
+									TypeException e;
+									throw e;
+								}
+							}
+							int val = 0;
+							for (int m = 0; m < TempValues.size(); m++)
+							{
+								val += ((Integer *)TempValues[m].second)->getValue();
+							}
+							try {
+								if (List* v = dynamic_cast<List*>(iter->second)) {
+									((List *)iter->second)->clean();
+								}
+							}
+							catch (...) {
+								delete iter->second;
+							}
+							iter->second = new Integer(val);
+							iter->second->setIsTemp(false);
+							for (int l = 0; l < TempValues.size(); l++)
+							{
+								delete TempValues[l].second;
+							}
+							return true;
+						}
+				}
+				//creating new var
+				if (Helper::GetTypeName(TempValues[0].second) == "String")
+				{
+					for (int m = 1; m < TempValues.size(); m++)
+					{
+						if (Helper::GetTypeName(TempValues[m].second) != "String")
+						{
+							for (int l = 0; l < TempValues.size(); l++)
+							{
+								delete TempValues[l].second;
+							}
+							TypeException e;
+							throw e;
+						}
+					}
 						std::string val = "\"";
-						val += Helper::RemoveStr(valLeftType->toString());
-						val += Helper::RemoveStr(valRightType->toString());
+						for (int m = 0; m < TempValues.size(); m++)
+						{
+							val += Helper::RemoveStr(((String *)TempValues[m].second)->toString());
+						}
 						val += "\"";
-						try{
-							if (List* v = dynamic_cast<List*>(iter->second)){
-								((List *)iter->second)->clean();
-							}
+						String * newType = new String(val);
+						newType->setIsTemp(false);
+						Parser::_variables.insert({ name, newType });
+						for (int l = 0; l < TempValues.size(); l++)
+						{
+							delete TempValues[l].second;
 						}
-						catch (...) {
-							delete iter->second;
-						}
-						iter->second = new String(val);
-						iter->second->setIsTemp(false);
-						delete valLeftType;
-						delete valRightType;
 						return true;
-					}
-					else if (Helper::GetTypeName(valLeftType) == "Integer")
+				}
+				else if (Helper::GetTypeName(TempValues[0].second) == "Integer")
+				{
+					for (int m = 0; m < TempValues.size(); m++)
 					{
-						int val;
-						val = ((Integer *)valLeftType)->getValue() + ((Integer *)valRightType)->getValue();
-						try {
-							if (List* v = dynamic_cast<List*>(iter->second)) {
-								((List *)iter->second)->clean();
+						if (Helper::GetTypeName(TempValues[m].second) != "Integer")
+						{
+							for (int l = 0; l < TempValues.size(); l++)
+							{
+								delete TempValues[l].second;
 							}
+							TypeException e;
+							throw e;
 						}
-						catch (...) {
-							delete iter->second;
-						}
-						iter->second = new Integer(val);
-						iter->second->setIsTemp(false);
-						delete valLeftType;
-						delete valRightType;
-						return true;
 					}
-				}
-			}
-			//creating new var
-			if (Helper::GetTypeName(valLeftType) != Helper::GetTypeName(valRightType))
-			{
-				TypeException e;
-				throw e;
-			}
-
-			if (valLeftType == nullptr || valLeftType == nullptr)
-			{
-				SyntaxException e;
-				throw e;
-			}
-
-			else {
-				if (Helper::GetTypeName(valLeftType) == "String")
-				{
-					std::string val = "\""; 
-					val += Helper::RemoveStr(valLeftType->toString());
-					val += Helper::RemoveStr(valRightType->toString());
-					val	+= "\"";
-					String * newType = new String(val);
-					newType->setIsTemp(false);
-					Parser::_variables.insert({ name, newType });
-					delete valLeftType;
-					delete valRightType;
-					return true;
-				}
-				else if (Helper::GetTypeName(valLeftType) == "Integer")
-				{
-					int val;
-					val = ((Integer *)valLeftType)->getValue() + ((Integer *)valRightType)->getValue();
+					int val = 0;
+					for (int m = 0; m < TempValues.size(); m++)
+					{
+						val += (((Integer *)TempValues[m].second)->getValue());
+					}
 					Integer * newType = new Integer(val);
 					newType->setIsTemp(false);
 					Parser::_variables.insert({ name, newType });
-					delete valLeftType;
-					delete valRightType;
+					for (int l = 0; l < TempValues.size(); l++)
+					{
+						delete TempValues[l].second;
+					}
 					return true;
-				}
-			}
+				}		
 
 		}
-		if (str.find('-') != std::string::npos) {
-			int indexP = value.find('-');
-			std::string Left = "";
-			std::string Right = "";
-			for (int i = 0; i < indexP; i++) {
-				Left += value[i];
+
+		//Minus Operation
+		if (str.find('-') != std::string::npos)
+		{
+			int count = 0;
+			for (int i = 0; i < value.length(); i++)
+			{
+				if (value[i] == '-')
+				{
+					count++;
+				}
 			}
 
-			for (int i = indexP + 1; i < value.length(); i++) {
-				Right += value[i];
+			std::vector<std::pair<std::string, Type *>> TempValues;
+			std::unordered_map<std::string, Type * >::iterator iter;
+			Type * valLeftType = nullptr;
+
+			int indexP = 0;
+			for (int k = 0; k < count; k++)
+			{
+				//Counting number of Slicing
+				indexP = value.find('-');
+				std::string Left = "";
+				if (indexP == std::string::npos)
+				{
+					indexP = value.length();
+				}
+				for (int i = 0; i < indexP; i++) { Left += value[i]; }
+				Helper::trim(Left);
+
+				//Checking if Left Value is a known varible
+				iter = Parser::_variables.find(Left);
+				if (iter != Parser::_variables.end())
+				{
+					valLeftType = iter->second->copy();
+					TempValues.push_back({ Left,valLeftType });
+				}
+
+				//Getting value of Left
+				else
+				{
+					valLeftType = Parser::getType(Left);
+					if (valLeftType == NULL)
+					{
+						for (int l = 0; l < TempValues.size(); l++)
+						{
+							delete TempValues[l].second;
+						}
+						//Syntx Error - not known type
+						SyntaxException e;
+						throw e;
+					}
+
+					TempValues.push_back({ Left, valLeftType });
+				}
+
+				std::string newValueLeft = "";
+				for (int i = indexP + 1; i < value.length(); i++)
+				{
+					newValueLeft += value[i];
+				}
+				value = newValueLeft;
 			}
 
-			Type * valLeftType = Parser::getType(Left);
-			Type * valRightType = Parser::getType(Right);
-
-			Helper::trim(Left);
-			Helper::trim(Right);
-
-			std::unordered_map<std::string, Type * >::iterator iter = Parser::_variables.find(name);
+			iter = Parser::_variables.find(name);
 
 			//if changing a stored variable
 			if (iter != Parser::_variables.end())
 			{
-				if (valLeftType == nullptr || valLeftType == nullptr)
-				{
-					SyntaxException e;
-					throw e;
-				}
-
-				char * nameType = Helper::GetTypeName(iter->second);
-				if (Helper::GetTypeName(valLeftType) != Helper::GetTypeName(valRightType))
-				{
-					TypeException e;
-					throw e;
-				}
-
-
 				//setting value variable
-				else {
-					if (Helper::GetTypeName(valLeftType) == "Integer")
+				if (Helper::GetTypeName(TempValues[0].second) == "Integer")
+				{
+					for (int m = 0; m < TempValues.size(); m++)
 					{
-						int val;
-						val = ((Integer *)valLeftType)->getValue() - ((Integer *)valRightType)->getValue();
-						try {
-							if (List* v = dynamic_cast<List*>(iter->second)) {
-								((List *)iter->second)->clean();
+						if (Helper::GetTypeName(TempValues[m].second) != "Integer")
+						{
+							for (int l = 0; l < TempValues.size(); l++)
+							{
+								delete TempValues[l].second;
 							}
+							TypeException e;
+							throw e;
 						}
-						catch (...) {
-							delete iter->second;
-						}
-						iter->second = new Integer(val);
-						iter->second->setIsTemp(false);
-						delete valLeftType;
-						delete valRightType;
-						return true;
 					}
+					int val = (((Integer *)TempValues[0].second)->getValue());
+					for (int m = 1; m < TempValues.size(); m++)
+					{
+						val -= ((Integer *)TempValues[m].second)->getValue();
+					}
+					try {
+						if (List* v = dynamic_cast<List*>(iter->second)) {
+							((List *)iter->second)->clean();
+						}
+					}
+					catch (...) {
+						delete iter->second;
+					}
+					iter->second = new Integer(val);
+					iter->second->setIsTemp(false);
+					for (int l = 0; l < TempValues.size(); l++)
+					{
+						delete TempValues[l].second;
+					}
+					return true;
 				}
 			}
 			//creating new var
-			if (valLeftType == nullptr || valLeftType == nullptr)
+			if (Helper::GetTypeName(TempValues[0].second) == "Integer")
 			{
-				SyntaxException e;
-				throw e;
-			}
-			if (Helper::GetTypeName(valLeftType) != Helper::GetTypeName(valRightType))
-			{
-				TypeException e;
-				throw e;
-			}
-
-
-			else {
-				if (Helper::GetTypeName(valLeftType) == "Integer")
+				for (int m = 0; m < TempValues.size(); m++)
 				{
-					int val;
-					val = ((Integer *)valLeftType)->getValue() - ((Integer *)valRightType)->getValue();
-					Integer * newType = new Integer(val);
+					if (Helper::GetTypeName(TempValues[m].second) != "Integer")
+					{
+						for (int l = 0; l < TempValues.size(); l++)
+						{
+							delete TempValues[l].second;
+						}
+						TypeException e;
+						throw e;
+					}
+				}
+				int val = (((Integer *)TempValues[0].second)->getValue());
+				for (int m = 1; m < TempValues.size(); m++)
+				{
+					val -= (((Integer *)TempValues[m].second)->getValue());
+				}
+				Integer * newType = new Integer(val);
+				newType->setIsTemp(false);
+				Parser::_variables.insert({ name, newType });
+				for (int l = 0; l < TempValues.size(); l++)
+				{
+					delete TempValues[l].second;
+				}
+				return true;
+			}
+		}
+		//* Operation
+		if (str.find('*') != std::string::npos)
+		{
+			int count = 0;
+			for (int i = 0; i < value.length(); i++)
+			{
+				if (value[i] == '*')
+				{
+					count++;
+				}
+			}
+
+			Type * valLeftType = nullptr;
+			std::vector<std::pair<std::string, Type *>> TempValues;
+			std::unordered_map<std::string, Type * >::iterator iter;
+			int indexP = 0;
+			for (int k = 0; k < count+1; k++)
+			{
+				//Counting number of Slicing
+				indexP = value.find('*');
+				std::string Left = "";
+				if (indexP == std::string::npos)
+				{
+					indexP = value.length();
+				}
+				for (int i = 0; i < indexP; i++) { Left += value[i]; }
+				Helper::trim(Left);
+
+				//Checking if Left Value is a known varible
+				iter = Parser::_variables.find(Left);
+				if (iter != Parser::_variables.end())
+				{
+					valLeftType = iter->second->copy();
+					TempValues.push_back({ Left,valLeftType });
+				}
+
+				//Getting value of Left
+				else
+				{
+					valLeftType = Parser::getType(Left);
+					if (valLeftType == NULL)
+					{
+						for (int l = 0; l < TempValues.size(); l++)
+						{
+							delete TempValues[l].second;
+						}
+						//Syntx Error - not known type
+						SyntaxException e;
+						throw e;
+					}
+
+					TempValues.push_back({ Left, valLeftType });
+				}
+
+				std::string newValueLeft = "";
+				for (int i = indexP + 1; i < value.length(); i++)
+				{
+					newValueLeft += value[i];
+				}
+				value = newValueLeft;
+			}
+
+			iter = Parser::_variables.find(name);
+
+			//if changing a stored variable
+			if (iter != Parser::_variables.end())
+			{
+				//setting value of stored variable
+				int val = 1;
+				if (Helper::GetTypeName(TempValues[0].second) == "Integer")
+				{
+					for (int m = 0; m < TempValues.size(); m++)
+					{
+						if (Helper::GetTypeName(TempValues[m].second) != "Integer")
+						{
+							if (Helper::GetTypeName(TempValues[m].second) == "String" && m == TempValues.size() - 1)
+							{
+								std::string StringVal = "\"";
+								for (int i = 0; i < val && i < MAX_MUL_STR; i++)
+								{
+									StringVal += Helper::RemoveStr(TempValues[m].second->toString());
+								}
+								StringVal += "\"";
+								try {
+									if (List* v = dynamic_cast<List*>(iter->second)) {
+										((List *)iter->second)->clean();
+									}
+								}
+								catch (...) {
+									delete iter->second;
+								}
+								iter->second = new String(StringVal);
+								iter->second->setIsTemp(false);
+								for (int l = 0; l < TempValues.size(); l++)
+								{
+									delete TempValues[l].second;
+								}
+								return true;
+							}
+							for (int l = 0; l < TempValues.size(); l++)
+							{
+								delete TempValues[l].second;
+							}
+							TypeException e;
+							throw e;
+						}
+
+						val *= ((Integer *)(TempValues[m].second))->getValue();
+					}
+					try {
+						if (List* v = dynamic_cast<List*>(iter->second)) {
+							((List *)iter->second)->clean();
+						}
+					}
+					catch (...) {
+						delete iter->second;
+					}
+					iter->second = new Integer(val);
+					iter->second->setIsTemp(false);
+					for (int l = 0; l < TempValues.size(); l++)
+					{
+						delete TempValues[l].second;
+					}
+					return true;
+				}
+
+				//other
+				if (Helper::GetTypeName(TempValues[0].second) == "String")
+				{
+					int val = 1;
+					std::string StringVal = "\"";
+					for (int m = 1; m < TempValues.size() && m < MAX_MUL_STR; m++)
+					{
+						if (Helper::GetTypeName(TempValues[m].second) != "Integer")
+						{
+							for (int l = 0; l < TempValues.size(); l++)
+							{
+								delete TempValues[l].second;
+							}
+							TypeException e;
+							throw e;
+						}
+
+						val *= ((Integer *)(TempValues[m].second))->getValue();
+					}
+					for (int i = 0; i < val && val < MAX_MUL_STR; i++)
+					{
+						StringVal += Helper::RemoveStr(TempValues[0].second->toString());
+					}
+					StringVal += "\"";
+					try {
+						if (List* v = dynamic_cast<List*>(iter->second)) {
+							((List *)iter->second)->clean();
+						}
+					}
+					catch (...) {
+						delete iter->second;
+					}
+					iter->second = new String(StringVal);
+					iter->second->setIsTemp(false);
+					for (int l = 0; l < TempValues.size(); l++)
+					{
+						delete TempValues[l].second;
+					}
+					return true;
+				}
+			}
+			//setting creating new variable
+			else {
+				int val = 1;
+				if (Helper::GetTypeName(TempValues[0].second) == "Integer")
+				{
+					for (int m = 0; m < TempValues.size(); m++)
+					{
+						if (Helper::GetTypeName(TempValues[m].second) != "Integer")
+						{
+							if (Helper::GetTypeName(TempValues[m].second) == "String" && m == TempValues.size() - 1)
+							{
+								std::string StringVal = "\"";
+								for (int i = 0; i < val && i < MAX_MUL_STR; i++)
+								{
+									StringVal += Helper::RemoveStr(TempValues[m].second->toString());
+								}
+								StringVal += "\"";
+								Type * newType = new String(StringVal);
+								newType->setIsTemp(false);
+								Parser::_variables.insert({ name, newType });
+								for (int l = 0; l < TempValues.size(); l++)
+								{
+									delete TempValues[l].second;
+								}
+								return true;
+							}
+							for (int l = 0; l < TempValues.size(); l++)
+							{
+								delete TempValues[l].second;
+							}
+							TypeException e;
+							throw e;
+						}
+
+						val *= ((Integer *)(TempValues[m].second))->getValue();
+					}
+					Type * newType = new Integer(val);
 					newType->setIsTemp(false);
 					Parser::_variables.insert({ name, newType });
-					delete valLeftType;
-					delete valRightType;
+					for (int l = 0; l < TempValues.size(); l++)
+					{
+						delete TempValues[l].second;
+					}
+					return true;
+				}
+
+				//other
+				if (Helper::GetTypeName(TempValues[0].second) == "String")
+				{
+					int val = 0;
+					std::string StringVal = "\"";
+					for (int m = 1; m < TempValues.size() && m < MAX_MUL_STR; m++)
+					{
+						if (Helper::GetTypeName(TempValues[m].second) != "Integer")
+						{
+							for (int l = 0; l < TempValues.size(); l++)
+							{
+								delete TempValues[l].second;
+							}
+							TypeException e;
+							throw e;
+						}
+
+						val *= ((Integer *)(TempValues[m].second))->getValue();
+					}
+					for (int i = 0; i < val && val < MAX_MUL_STR; i++)
+					{
+						StringVal += Helper::RemoveStr(TempValues[0].second->toString());
+					}
+					StringVal += "\"";
+					
+					Type * newType = new String(StringVal);
+					newType->setIsTemp(false);
+					Parser::_variables.insert({ name, newType });
+					for (int l = 0; l < TempValues.size(); l++)
+					{
+						delete TempValues[l].second;
+					}
 					return true;
 				}
 			}
