@@ -1,11 +1,5 @@
 #include "parser.h"
-#include <iostream>
-#include <cstring>
-#include "Integer.h";
-#include "Boolean.h"
-#include "String.h"
-#include "Void.h"
-#include "List.h"
+
 
 std::unordered_map<std::string, Type *> Parser::_variables;
 
@@ -399,7 +393,7 @@ bool Parser::makeAssignment(const std::string & str)
 			Type * valLeftType = nullptr;
 
 			int indexP = 0;
-			for (int k = 0; k < count; k++)
+			for (int k = 0; k < count+1; k++)
 			{
 				//Counting number of Slicing
 				indexP = value.find('-');

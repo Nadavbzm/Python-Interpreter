@@ -2,6 +2,10 @@
 #define INTEGER_H
 
 #include "Type.h"
+#include "Helper.h"
+#include "String.h"
+
+class String;
 class Integer : public Type
 {
 public:
@@ -12,6 +16,9 @@ public:
 	Type * copy();
 	int getValue();
 	void setValue(int x);
+	int operator+=(Integer * x);
+	int operator*(Integer * x);
+	std::string operator*(String * x);
 private:
 	int _value;
 };

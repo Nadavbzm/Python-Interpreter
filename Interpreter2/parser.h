@@ -7,9 +7,15 @@
 #include "TypeException.h"
 #include "type.h"
 #include "Helper.h"
+#include <iostream>
+#include <cstring>
+#include "Integer.h";
+#include "Boolean.h"
+#include "String.h"
+#include "Void.h"
+#include "List.h"
 #include <string>
 #include <unordered_map>
-#include <iostream>
 #include <sstream>
 #include <vector>
 

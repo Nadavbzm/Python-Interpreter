@@ -34,3 +34,27 @@ void Integer::setValue(int x)
 {
 	_value = x;
 }
+
+
+int Integer::operator+=(Integer * x)
+{
+	return this->_value + x->getValue();
+}
+
+int Integer::operator*(Integer * x)
+{
+	return this->_value * x->getValue();
+
+}
+
+std::string Integer::operator*(String * x)
+{
+	std::string t = "\"";
+	for (int i = 0; i < this->_value; i++)
+	{
+		t+= Helper::RemoveStr(x->toString());
+	}
+	t += "\"";
+	return t;
+
+}
